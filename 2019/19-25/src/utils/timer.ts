@@ -1,6 +1,4 @@
-export const log = (message?: any): void => {
-    console.log(`[${new Date().toLocaleString()}] ${message}`);
-};
+import { log } from "./log";
 
 let start: Date;
 export const startTimer = () => {
