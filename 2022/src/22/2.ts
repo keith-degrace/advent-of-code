@@ -1,27 +1,20 @@
 import * as fs from "fs";
 import * as path from "path";
-import { log } from "../utils";
+import { log } from "../utils/log";
+import { getPositionKey, Position } from "../utils/position";
+import { getPixel, Grid, printGrid, setPixel } from "../utils/grid";
 
 interface Face {
     id: number;
     origin: Position;
 }
 
-interface Map {
-    pixels: Record<string, string>;
-    width: number;
-    height: number;
-
+interface Map extends Grid {
     faces: Face[];
     faceSize: number;
 }
 
 type Instruction = "R" | "L" | number;
-
-interface Position {
-    x: number;
-    y: number;
-}
 
 type Orientation = "^" | "<" | "v" | ">";
 
@@ -84,40 +77,6 @@ const findStart = (map: Map): Position => {
         if (getPixel(map, { x, y: 0 }) !== " ") {
             return { x, y: 0 };
         }
-    }
-};
-
-const getPositionKey = (position: Position): string => {
-    return `${position.x},${position.y}`;
-};
-
-const setPixel = (map: Map, position: Position, value: string): void => {
-    const positionKey = getPositionKey(position);
-
-    if (getPixel(map, position) === "#") {
-        console.trace();
-    }
-
-    if (value === " ") {
-        delete map.pixels[positionKey];
-    } else {
-        map.pixels[positionKey] = value;
-    }
-};
-
-const getPixel = (map: Map, position: Position): string => {
-    const positionKey = getPositionKey(position);
-    return map.pixels[positionKey] ?? " ";
-};
-
-const printMap = (map: Map): void => {
-    for (let y = 0; y < map.height; y++) {
-        let line = "";
-        for (let x = 0; x < map.width; x++) {
-            line += getPixel(map, { x, y });
-        }
-
-        log(line);
     }
 };
 
@@ -345,7 +304,7 @@ const finalFacing = orientation === ">" ? 0 : orientation === "v" ? 1 : orientat
 
 const password = 1000 * finalRow + 4 * finalColumn + finalFacing;
 
-printMap(map);
+printGrid(map);
 
 log(`Password: ${password}`);
 // 101240 too low

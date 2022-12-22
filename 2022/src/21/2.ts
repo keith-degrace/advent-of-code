@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { __values } from "tslib";
-import { log } from "../utils";
+import { log } from "../utils/log";
 
 type Operator = "+" | "-" | "*" | "/";
 

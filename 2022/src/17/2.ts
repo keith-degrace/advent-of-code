@@ -1,13 +1,9 @@
 import * as fs from "fs";
 import * as path from "path";
-import { log } from "../utils";
+import { log } from "../utils/log";
+import { Position } from "../utils/position";
 
 let input = fs.readFileSync(path.join(__dirname, "input.txt"), "utf-8").trim().split("");
-
-interface Position {
-    x: number;
-    y: number;
-}
 
 interface RockType {
     name: string;

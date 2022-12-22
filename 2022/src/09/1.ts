@@ -1,12 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
+import { Position } from "../utils/position";
 
 let input = fs.readFileSync(path.join(__dirname, "input.txt"), "utf-8").trim().split("\n");
-
-interface Position {
-    x: number;
-    y: number;
-}
 
 let head: Position = { x: 0, y: 0 };
 let tail: Position = { x: 0, y: 0 };

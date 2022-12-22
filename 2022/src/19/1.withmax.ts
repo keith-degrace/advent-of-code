@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { resourceUsage } from "process";
-import { log } from "../utils";
+import { log } from "../utils/log";
 
 interface Blueprint {
     id: number;

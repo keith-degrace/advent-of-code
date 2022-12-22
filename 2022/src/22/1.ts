@@ -1,23 +1,14 @@
 import * as fs from "fs";
 import * as path from "path";
-import { log } from "../utils";
-
-interface Map {
-    pixels: Record<string, string>;
-    width: number;
-    height: number;
-}
+import { log } from "../utils/log";
+import { getPositionKey, Position } from "../utils/position";
+import { getPixel, Grid, printGrid, setPixel } from "../utils/grid";
 
 type Instruction = "R" | "L" | number;
 
-interface Position {
-    x: number;
-    y: number;
-}
-
 type Orientation = "^" | "<" | "v" | ">";
 
-const loadInput = (): [Map, Instruction[]] => {
+const loadInput = (): [Grid, Instruction[]] => {
     let input = fs.readFileSync(path.join(__dirname, "input.txt"), "utf-8").split("\r\n");
 
     // Load map
@@ -47,34 +38,11 @@ const loadInput = (): [Map, Instruction[]] => {
     return [map, instructions];
 };
 
-const findStart = (map: Map): Position => {
+const findStart = (map: Grid): Position => {
     return { x: getFirstNonEmptyOnRow(map, 0), y: 0 };
 };
 
-const getPositionKey = (position: Position): string => {
-    return `${position.x},${position.y}`;
-};
-
-const setPixel = (map: Map, position: Position, value: string): void => {
-    const positionKey = getPositionKey(position);
-
-    if (getPixel(map, position) === "#") {
-        console.trace();
-    }
-
-    if (value === " ") {
-        delete map.pixels[positionKey];
-    } else {
-        map.pixels[positionKey] = value;
-    }
-};
-
-const getPixel = (map: Map, position: Position): string => {
-    const positionKey = getPositionKey(position);
-    return map.pixels[positionKey] ?? " ";
-};
-
-const getFirstNonEmptyOnRow = (map: Map, y: number): number => {
+const getFirstNonEmptyOnRow = (map: Grid, y: number): number => {
     for (let x = 0; x < map.width; x++) {
         if (getPixel(map, { x, y }) !== " ") {
             return x;
@@ -84,7 +52,7 @@ const getFirstNonEmptyOnRow = (map: Map, y: number): number => {
     // throw `getFirstPositionOnRow(${position.x}, ${position.y}) failed`;
 };
 
-const getLastNonEmptyOnRow = (map: Map, y: number): number => {
+const getLastNonEmptyOnRow = (map: Grid, y: number): number => {
     for (let x = map.width; x >= 0; x--) {
         if (getPixel(map, { x, y }) !== " ") {
             return x;
@@ -94,7 +62,7 @@ const getLastNonEmptyOnRow = (map: Map, y: number): number => {
     //  throw `getLastPositionOnRow(${position.x}, ${position.y}) failed`;
 };
 
-const getFirstNonEmptyOnColumn = (map: Map, x: number): number => {
+const getFirstNonEmptyOnColumn = (map: Grid, x: number): number => {
     for (let y = 0; y < map.height; y++) {
         if (getPixel(map, { x, y }) !== " ") {
             return y;
@@ -104,7 +72,7 @@ const getFirstNonEmptyOnColumn = (map: Map, x: number): number => {
     // throw `getFirstNonEmptyOnColumn(${position.x}, ${position.y}) failed`;
 };
 
-const getLastNonEmptyOnColumn = (map: Map, x: number): number => {
+const getLastNonEmptyOnColumn = (map: Grid, x: number): number => {
     for (let y = map.height; y >= 0; y--) {
         if (getPixel(map, { x, y }) !== " ") {
             return y;
@@ -114,18 +82,7 @@ const getLastNonEmptyOnColumn = (map: Map, x: number): number => {
     // throw `getFirstNonEmptyOnColumn(${position.x}, ${position.y}) failed`;
 };
 
-const printMap = (map: Map): void => {
-    for (let y = 0; y < map.height; y++) {
-        let line = "";
-        for (let x = 0; x < map.width; x++) {
-            line += getPixel(map, { x, y });
-        }
-
-        log(line);
-    }
-};
-
-const move = (map: Map, position: Position, orientation: Orientation, steps: number): Position => {
+const move = (map: Grid, position: Position, orientation: Orientation, steps: number): Position => {
     let newPosition: Position = position;
 
     for (let step = 0; step < steps; step++) {
@@ -205,6 +162,8 @@ const finalFacing = orientation === ">" ? 0 : orientation === "v" ? 1 : orientat
 
 const password = 1000 * finalRow + 4 * finalColumn + finalFacing;
 
+printGrid(map);
+
 log(password);
 
-printMap(map);
+log(`Password: ${password}`);

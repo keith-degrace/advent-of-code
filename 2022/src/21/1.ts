@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { log } from "../utils";
+import { log } from "../utils/log";
 
 interface Operation {
     monkey1: string;

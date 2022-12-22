@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
-import { log, startTimer, stopTimer } from "../utils";
+import { log } from "../utils/log";
+import { startTimer, stopTimer } from "../utils/timer";
 
 let input = fs.readFileSync(path.join(__dirname, "input.txt"), "utf-8").trim().split(/\r\n/);
 

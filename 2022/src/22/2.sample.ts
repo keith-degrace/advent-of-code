@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
-import { log } from "../utils";
+import { log } from "../utils/log";
+import { getPositionKey, Position } from "../utils/position";
 
 interface Face {
     id: number;
@@ -17,11 +18,6 @@ interface Map {
 }
 
 type Instruction = "R" | "L" | number;
-
-interface Position {
-    x: number;
-    y: number;
-}
 
 type Orientation = "^" | "<" | "v" | ">";
 
@@ -85,10 +81,6 @@ const findStart = (map: Map): Position => {
             return { x, y: 0 };
         }
     }
-};
-
-const getPositionKey = (position: Position): string => {
-    return `${position.x},${position.y}`;
 };
 
 const setPixel = (map: Map, position: Position, value: string): void => {
