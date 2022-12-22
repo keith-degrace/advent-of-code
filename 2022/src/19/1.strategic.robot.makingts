@@ -1,0 +1,230 @@
+import * as fs from "fs";
+import * as path from "path";
+import { log } from "../utils";
+
+interface Blueprint {
+    id: number;
+    oreRobotRecipe: {
+        ore: number;
+    };
+    clayRobotRecipe: {
+        ore: number;
+    };
+    obsidianRobotRecipe: {
+        ore: number;
+        clay: number;
+    };
+    geodeRobotRecipe: {
+        ore: number;
+        obsidian: number;
+    };
+}
+
+const loadBlueprints = (): Blueprint[] => {
+    let input = fs.readFileSync(path.join(__dirname, "input.txt"), "utf-8").trim();
+
+    const regex =
+        /Blueprint ([0-9]+):\r?\n? *Each ore robot costs ([0-9]+) ore.\r?\n? *Each clay robot costs ([0-9]+) ore.\r?\n? *Each obsidian robot costs ([0-9]+) ore and ([0-9]+) clay.\r?\n? *Each geode robot costs ([0-9]+) ore and ([0-9]+) obsidian.\r?\n?/gm;
+
+    const blueprints: Blueprint[] = [];
+    for (const match of input.matchAll(regex)) {
+        blueprints.push({
+            id: Number.parseInt(match[1]),
+            oreRobotRecipe: {
+                ore: Number.parseInt(match[2]),
+            },
+            clayRobotRecipe: {
+                ore: Number.parseInt(match[3]),
+            },
+            obsidianRobotRecipe: {
+                ore: Number.parseInt(match[4]),
+                clay: Number.parseInt(match[5]),
+            },
+            geodeRobotRecipe: {
+                ore: Number.parseInt(match[6]),
+                obsidian: Number.parseInt(match[7]),
+            },
+        });
+    }
+
+    return blueprints;
+};
+
+interface Resources {
+    minute: number;
+
+    ore: number;
+    clay: number;
+    obsidian: number;
+    geode: number;
+
+    oreRobots: number;
+    clayRobots: number;
+    obsidianRobots: number;
+    geodeRobots: number;
+}
+
+const makeOreRobot = (blueprint: Blueprint, resources: Resources): Resources => {
+    const newResources = { ...resources };
+
+    log(`[${newResources.minute}] Making an ore robot`);
+
+    if (resources.minute === 24) {
+        log(`[${newResources.minute}]    No time left!`);
+        return resources;
+    }
+
+    if (resources.ore < blueprint.oreRobotRecipe.ore) {
+        const missingOre: number = blueprint.oreRobotRecipe.ore - resources.ore;
+        log(`[${newResources.minute}]   Missing ore: ${missingOre}`);
+
+        const minutesToUse: number = Math.max(0, Math.ceil(missingOre / resources.oreRobots));
+        log(`[${newResources.minute}]   Minutes to wait for ore: ${minutesToUse}`);
+
+        newResources.minute += minutesToUse;
+        newResources.ore += resources.oreRobots * minutesToUse;
+    }
+
+    log(`[${newResources.minute}]   Made ore robot!`);
+    newResources.ore -= blueprint.oreRobotRecipe.ore;
+    newResources.oreRobots++;
+    newResources.minute++;
+
+    return newResources;
+};
+
+const makeClayRobot = (blueprint: Blueprint, resources: Resources): Resources => {
+    const newResources = { ...resources };
+
+    log(`[${newResources.minute}] Making a clay robot`);
+
+    if (resources.minute === 24) {
+        log(`[${newResources.minute}]    No time left!`);
+        return resources;
+    }
+
+    if (resources.ore < blueprint.clayRobotRecipe.ore) {
+        const missingOre: number = blueprint.clayRobotRecipe.ore - resources.ore;
+        log(`[${newResources.minute}]   Missing ore: ${missingOre}`);
+
+        const minutesToUse: number = Math.max(0, Math.ceil(missingOre / resources.oreRobots));
+        log(`[${newResources.minute}]   Minutes to wait for ore: ${minutesToUse}`);
+
+        newResources.minute += minutesToUse;
+        newResources.ore += resources.oreRobots * minutesToUse;
+    }
+
+    log(`[${newResources.minute}]   Made a clay robot!`);
+    newResources.ore -= blueprint.clayRobotRecipe.ore;
+    newResources.clayRobots++;
+    newResources.minute++;
+
+    return newResources;
+};
+
+const makeObsidianRobot = (blueprint: Blueprint, resources: Resources): Resources => {
+    let newResources = { ...resources };
+
+    log(`[${newResources.minute}] Making an obsidian robot`);
+
+    if (resources.minute === 24) {
+        log(`[${newResources.minute}]    No time left!`);
+        return resources;
+    }
+
+    const currentOreRobotRatio: number = resources.oreRobots / blueprint.obsidianRobotRecipe.ore;
+    const currentClayRobotRatio: number = resources.obsidianRobots / blueprint.obsidianRobotRecipe.clay;
+
+    if (currentClayRobotRatio < currentOreRobotRatio) {
+        newResources = makeClayRobot(blueprint, newResources);
+    } else {
+        newResources = makeOreRobot(blueprint, newResources);
+    }
+
+    if (resources.ore < blueprint.clayRobotRecipe.ore) {
+        const missingOre: number = blueprint.clayRobotRecipe.ore - resources.ore;
+        log(`[${newResources.minute}]   Missing ore: ${missingOre}`);
+
+        const minutesToUse: number = Math.max(0, Math.ceil(missingOre / resources.oreRobots));
+        log(`[${newResources.minute}]   Minutes to wait for ore: ${minutesToUse}`);
+
+        newResources.minute += minutesToUse;
+        newResources.ore += resources.oreRobots * minutesToUse;
+    }
+
+    log(`[${newResources.minute}]   Made an obsidian robot!`);
+    newResources.ore -= blueprint.obsidianRobotRecipe.ore;
+    newResources.clay -= blueprint.obsidianRobotRecipe.clay;
+    newResources.obsidianRobots++;
+    newResources.minute++;
+
+    return newResources;
+};
+
+const makeGeodeRobots = (blueprint: Blueprint, resources: Resources): Resources => {
+    let newResources = { ...resources };
+
+    log(`[${newResources.minute}] Making a geode robot`);
+
+    if (resources.minute === 24) {
+        log(`[${newResources.minute}]    No time left!`);
+        return resources;
+    }
+
+    const currentOreRobotRatio: number = resources.oreRobots / blueprint.geodeRobotRecipe.ore;
+    const currentObsidianRobotRatio: number = resources.obsidianRobots / blueprint.geodeRobotRecipe.obsidian;
+
+    if (currentObsidianRobotRatio < currentOreRobotRatio) {
+        newResources = makeObsidianRobot(blueprint, newResources);
+    } else {
+        newResources = makeOreRobot(blueprint, newResources);
+    }
+
+    while (newResources.minute < 24 && newResources.ore >= blueprint.geodeRobotRecipe.ore && newResources.obsidian >= blueprint.geodeRobotRecipe.obsidian) {
+        log(`[${newResources.minute}]    Made a geode robot!`);
+        newResources.ore -= blueprint.geodeRobotRecipe.ore;
+        newResources.obsidian -= blueprint.geodeRobotRecipe.obsidian;
+        newResources.geodeRobots++;
+        newResources.minute++;
+    }
+
+    return newResources;
+};
+
+const getBestGeodeCount = (blueprint: Blueprint, resources: Resources): Resources => {
+    let currentResources = resources;
+
+    while (currentResources.minute < 24) {
+        currentResources = makeGeodeRobots(blueprint, currentResources);
+    }
+
+    return resources;
+};
+
+const blueprints = loadBlueprints();
+
+const initialResource: Resources = {
+    minute: 1,
+    ore: 0,
+    clay: 0,
+    obsidian: 0,
+    geode: 0,
+    oreRobots: 1,
+    clayRobots: 0,
+    obsidianRobots: 0,
+    geodeRobots: 0,
+};
+
+let qualitySum: number = 0;
+
+//for (const blueprint of blueprints) {
+const blueprint = blueprints[0];
+
+const resources: Resources = getBestGeodeCount(blueprint, initialResource);
+log(JSON.stringify(resources, null, 2));
+
+const quality = blueprint.id * resources.geode;
+qualitySum += quality;
+//}
+
+log(qualitySum);
