@@ -1,13 +1,22 @@
 import { getPositionKey, Position } from "./position";
 import { log } from "./log";
-
-export interface Grid {
-    pixels: Record<string, string>;
-    width: number;
-    height: number;
+export interface Grid<T = string> {
+    pixels: Record<string, T>;
+    width?: number;
+    height?: number;
+    min?: Position;
+    max?: Position;
 }
 
-export const setPixel = (grid: Grid, position: Position, value: string): void => {
+export const createGrid = <T>(): Grid<T> => {
+    return {
+        pixels: {},
+        min: { x: Infinity, y: Infinity },
+        max: { x: -Infinity, y: -Infinity },
+    };
+};
+
+export const setPixel = <T>(grid: Grid<T>, position: Position, value: T): void => {
     const positionKey = getPositionKey(position);
 
     if (value === " ") {
@@ -15,21 +24,46 @@ export const setPixel = (grid: Grid, position: Position, value: string): void =>
     } else {
         grid.pixels[positionKey] = value;
     }
+
+    grid.min.x = Math.min(grid.min.x, position.x);
+    grid.max.x = Math.max(grid.max.x, position.x);
+    grid.min.y = Math.min(grid.min.y, position.y);
+    grid.max.y = Math.max(grid.max.y, position.y);
+
+    grid.width = grid.max.x - grid.min.x;
+    grid.height = grid.max.y - grid.min.y;
 };
 
-export const getPixel = (grid: Grid, position: Position): string => {
+export const getPixel = <T>(grid: Grid<T>, position: Position): T => {
     const positionKey = getPositionKey(position);
-    return grid.pixels[positionKey] ?? " ";
+    return grid.pixels[positionKey] ?? (" " as T);
 };
 
-export const printGrid = (grid: Grid): void => {
-    for (let y = 0; y < grid.height; y++) {
+export const hasPixel = <T>(grid: Grid<T>, position: Position): boolean => {
+    const positionKey = getPositionKey(position);
+    return grid.pixels[positionKey] !== undefined;
+};
+
+export const printGrid = <T>(grid: Grid<T>): void => {
+    for (let y = grid.min.y; y <= grid.max.y; y++) {
         let line = "";
 
-        for (let x = 0; x < grid.width; x++) {
-            line += getPixel(grid, { x, y }) ?? " ";
+        for (let x = grid.min.x; x <= grid.max.x; x++) {
+            line += getPixel(grid, { x, y });
         }
 
         log(line);
     }
+};
+
+export const findValueInGrid = <T>(grid: Grid<T>, value: T): Position => {
+    for (let y = grid.min.y; y <= grid.max.y; y++) {
+        for (let x = grid.min.x; x <= grid.max.x; x++) {
+            if (getPixel(grid, { x, y }) === value) {
+                return { x, y };
+            }
+        }
+    }
+
+    return undefined;
 };

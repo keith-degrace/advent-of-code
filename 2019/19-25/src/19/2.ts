@@ -4,7 +4,6 @@ import { getShortestPath } from "../utils/astar";
 import { createGrid, findValueInGrid, getPixel, Grid, printGrid, setPixel } from "../utils/grid";
 import { log } from "../utils/log";
 import { getPositionKey, Position } from "../utils/position";
-import { startTimer, stopTimer } from "../utils/timer";
 
 const loadMap = (): Grid => {
     let input = fs.readFileSync(path.join(__dirname, "input.txt"), "utf-8").split("\r\n");
@@ -38,7 +37,7 @@ const getKeys = (map: Grid): Key[] => {
     for (let y = 0; y < map.height; y++) {
         for (let x = 0; x < map.width; x++) {
             const value = getPixel(map, { x, y });
-            if (/[a-z]/.test(value)) {
+            if (/[a-z0-9]/.test(value)) {
                 keys.push({
                     value,
                     position: { x, y },
@@ -57,6 +56,10 @@ const getKey = (keys: Key[], value: string): Key => {
     }
 
     return key;
+};
+
+const isRobotKey = (key: Key) => {
+    return ["1", "2", "3", "4"].includes(key.value);
 };
 
 const getBestPath = (map: Grid, start: Position, end: Position): Position[] => {
@@ -78,6 +81,21 @@ const getBestPath = (map: Grid, start: Position, end: Position): Position[] => {
     };
 
     return getShortestPath(start, end, getNeighbors);
+};
+
+const initRobots = (map: Grid): void => {
+    const start = findValueInGrid(map, "@");
+
+    setPixel(map, { x: start.x - 1, y: start.y - 1 }, "1");
+    setPixel(map, { x: start.x + 1, y: start.y - 1 }, "2");
+    setPixel(map, { x: start.x - 1, y: start.y + 1 }, "3");
+    setPixel(map, { x: start.x + 1, y: start.y + 1 }, "4");
+
+    setPixel(map, { x: start.x, y: start.y }, "#");
+    setPixel(map, { x: start.x - 1, y: start.y }, "#");
+    setPixel(map, { x: start.x + 1, y: start.y }, "#");
+    setPixel(map, { x: start.x, y: start.y - 1 }, "#");
+    setPixel(map, { x: start.x, y: start.y + 1 }, "#");
 };
 
 const blockDeadEnds = (map: Grid, position: Position, visited: Set<string> = new Set()): void => {
@@ -133,14 +151,15 @@ const calculatePathBetweenKeys = (map: Grid, keys: Key[]): void => {
         key1.pathToKeys = [];
 
         for (const key2 of keys) {
-            if (key1 === key2) {
+            if (key1 === key2 || isRobotKey(key2)) {
                 continue;
             }
 
             const path = getBestPath(map, key1.position, key2.position);
-            const requiredKeys = getKeysRequiredForPath(map, path, keys);
-
-            key1.pathToKeys.push({ key: key2, path, requiredKeys });
+            if (path) {
+                const requiredKeys = getKeysRequiredForPath(map, path, keys);
+                key1.pathToKeys.push({ key: key2, path, requiredKeys });
+            }
         }
     }
 };
@@ -161,67 +180,60 @@ const isBlockedByDoor = (map: Grid, path: Position[], availableKeys: string[]): 
 
 const memo: Record<string, number> = {};
 
-const solve = (map: Grid, key: Key, foundKeys: string[], remainingKeys: string[]): number => {
-    let bestSteps = Infinity;
+const solve = (map: Grid, robotCurrentKeys: Key[], keyCount: number, foundKeys: string[]): number => {
+    let best = Infinity;
 
-    if (remainingKeys.length === 0) {
+    if (foundKeys.length === keyCount) {
         return 0;
     }
 
-    const memoKey = `${key.value}-${foundKeys.join(",")}`;
+    const memoKey = `${robotCurrentKeys.map((key) => key.value).join(",")}-${foundKeys.join(",")}`;
     if (memo[memoKey] !== undefined) {
         return memo[memoKey];
     }
 
-    for (const pathToKey of key.pathToKeys) {
-        if (foundKeys.includes(pathToKey.key.value)) {
-            continue;
+    for (let i = 0; i < robotCurrentKeys.length; i++) {
+        for (const pathToKey of robotCurrentKeys[i].pathToKeys) {
+            if (foundKeys.includes(pathToKey.key.value)) {
+                continue;
+            }
+
+            if (isBlockedByDoor(map, pathToKey.path, foundKeys)) {
+                continue;
+            }
+
+            const newRobotCurrentKeys = [...robotCurrentKeys];
+            newRobotCurrentKeys[i] = pathToKey.key;
+
+            const newFoundKeys: string[] = [...foundKeys, pathToKey.key.value].sort((a, b) => (a < b ? -1 : 1));
+
+            const stepsToKey = pathToKey.path.length - 1;
+            const stepsToRest = solve(map, newRobotCurrentKeys, keyCount, newFoundKeys);
+
+            best = Math.min(best, stepsToKey + stepsToRest);
         }
-
-        if (isBlockedByDoor(map, pathToKey.path, foundKeys)) {
-            continue;
-        }
-
-        const subFoundKeys: string[] = [...foundKeys, pathToKey.key.value].sort((a, b) => (a < b ? -1 : 1));
-        const subRemainingKeys = remainingKeys.filter((key) => !subFoundKeys.includes(key));
-
-        const stepsToKey = pathToKey.path.length - 1;
-        const stepsToRest = solve(map, pathToKey.key, subFoundKeys, subRemainingKeys);
-
-        bestSteps = Math.min(bestSteps, stepsToKey + stepsToRest);
     }
 
-    memo[memoKey] = bestSteps;
+    memo[memoKey] = best;
 
-    return bestSteps;
+    return best;
 };
 
 export const run = () => {
     const map = loadMap();
-    const keys = getKeys(map);
-    const start = findValueInGrid(map, "@");
 
-    blockDeadEnds(map, start);
+    initRobots(map);
+
+    const keys = getKeys(map);
+
+    const robotKeys = keys.filter(isRobotKey);
+    for (const robot of robotKeys) {
+        blockDeadEnds(map, robot.position);
+    }
 
     calculatePathBetweenKeys(map, keys);
 
-    let best = Infinity;
-
-    log(JSON.stringify(keys.map((key) => key.value)));
-
-    for (const key of keys) {
-        const foundKeys: string[] = [key.value];
-        const remainingKeys = keys.filter((aKey) => aKey !== key).map((aKey) => aKey.value);
-
-        const pathToKey = getBestPath(map, start, key.position);
-
-        const stepsToKey = pathToKey.length - 1;
-        const stepsToRest = solve(map, key, foundKeys, remainingKeys);
-
-        log(`[${key.value}] ${stepsToKey + stepsToRest}`);
-
-        best = Math.min(best, stepsToKey + stepsToRest);
-    }
+    const best = solve(map, robotKeys, keys.length - 4, []);
 
     log(best);
 };
