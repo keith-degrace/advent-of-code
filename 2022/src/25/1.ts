@@ -61,5 +61,3 @@ for (const entry of input) {
 }
 
 log(toSnafu(sum));
-
-// 2=-1=0 is wrong

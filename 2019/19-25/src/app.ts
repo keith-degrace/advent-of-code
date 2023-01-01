@@ -1,4 +1,4 @@
-import { run } from "./19/2";
+import { run } from "./25/1";
 import { startTimer, stopTimer } from "./utils/timer";
 
 startTimer();

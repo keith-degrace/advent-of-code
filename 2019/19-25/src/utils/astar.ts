@@ -8,8 +8,12 @@ export interface Node {
     f: number;
 }
 
-export const getShortestPath = (start: Position, end: Position, getNeighbors: (position: Position) => Position[]): Position[] => {
-    const open: Node[] = [{ position: start, f: 0, h: getManhattanDistance(start, end), g: 0 }];
+interface Options {
+    getCost?: (neighbor: Position, end: Position) => number;
+}
+
+export const getShortestPath = (start: Position, end: Position, getNeighbors: (position: Position) => Position[], options?: Options): Position[] => {
+    const open: Node[] = [{ position: start, f: 0, h: (options?.getCost ?? getManhattanDistance)(start, end), g: 0 }];
     const closed: Node[] = [];
 
     while (open.length > 0) {
@@ -27,7 +31,7 @@ export const getShortestPath = (start: Position, end: Position, getNeighbors: (p
             }
 
             const g: number = current.g + 1;
-            const h: number = getManhattanDistance(neighbor, end);
+            const h: number = (options?.getCost ?? getManhattanDistance)(neighbor, end);
             const f: number = g + h;
 
             const neighborInOpen = open.find((node) => isPositionsEqual(node.position, neighbor));

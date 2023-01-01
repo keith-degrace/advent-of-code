@@ -9,10 +9,10 @@ export const getPositionKey = (position: Position) => {
 
 export const isPositionsEqual = (a: Position, b: Position): boolean => {
     if (!a || !b) {
-        return !a == !b;
+        return !a === !b;
     }
 
-    return a.x == b.x && a.y == b.y;
+    return a.x === b.x && a.y === b.y;
 };
 
 export const getManhattanDistance = (a: Position, b: Position): number => {
